@@ -46,15 +46,20 @@ pick_im() {
 }
 IM="$(pick_im)"
 
-# Build the default palette: smooth white -> black -> pink -> darker-pink
-# gradient, from the blog's documented stops (darker pink is derived from the
-# pink at 60% brightness, not invented).
+# Build the default palette: smooth white -> accent -> darker accent -> black
+# duotone ramp, from the blog's documented stops (darker accent is derived
+# from the accent at 60% brightness, not invented). The hue runs through the
+# whole tonal range so the accent tints the midtones too -- the blog's order
+# (white, black, pink, darker pink) leaves midtones gray on some photos.
 gen_palette() {
+  # NOTE: -depth 8 is load-bearing. Without it, Q16 txt: emits 12-digit hex
+  # (RRRRGGGGBBBB) and the grep below grabs the wrong digits -- this once
+  # shipped a near-black navy as "dark cyan".
   local dark
-  dark="$("$IM" -size 1x1 "xc:$PINK" -modulate 60,100 txt: | grep -oE '#[0-9A-Fa-f]{6}' | head -1)"
-  "$IM" \( -size 85x16 "gradient:#FFFFFF-#000000" \) \
-        \( -size 85x16 "gradient:#000000-$PINK" \) \
-        \( -size 86x16 "gradient:$PINK-$dark" \) \
+  dark="$("$IM" -size 1x1 "xc:$PINK" -modulate 60,100 -depth 8 txt: | grep -oE '#[0-9A-Fa-f]{6}' | head -1)"
+  "$IM" \( -size 85x16 "gradient:#FFFFFF-$PINK" \) \
+        \( -size 85x16 "gradient:$PINK-$dark" \) \
+        \( -size 86x16 "gradient:$dark-#000000" \) \
         +append "$1"
 }
 

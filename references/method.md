@@ -84,6 +84,14 @@ colors; overlay the four; recombine; limit final colors.
   `-remap "$palette" -colors 32`. The palette is a linear gradient through
   the site's colors: white, black, pink, darker pink. More depth, more
   usable on the blog.
+
+  > **Skill deviation:** the blog's stop order (white → black → pink →
+  > darker pink) leaves midtones gray on some photos, and the skill's first
+  > palette builder additionally misread Q16 `txt:` hex (12 digits, not 6),
+  > shipping a near-black navy as "dark cyan". `bin/halftone.sh` now builds
+  > white → accent → darker accent → black (darker derived at 60%
+  > brightness, read with `-depth 8`) so the hue tints the full tonal
+  > range. Same stops, better duotone.
 - **Problematic (overwhelmingly light) images** — the grid misfires on very
   light images; the author's fallback skips the grid entirely:
   `convert "oldfile" -modulate 300,200,100 -negate -remap $palette "newfile"`
