@@ -21,8 +21,23 @@ bin/check.py                      # executable gate
 | `rgb` | Same pipeline in RGB (3 channels) — less print-accurate, more intense |
 
 Options: `--width` (default 800), `--scale` (dot size, default 2),
+`--contrast` (sigmoidal pre-boost, default 0, 4–6 is punchy),
 `--palette`, `--colors` (default 32), `--pink` (default `#A2719B`).
 Needs ImageMagick 6 (`convert`) or 7 (`magick`).
+
+## Examples
+
+"Tank Man", Tiananmen Square, Beijing, 5 June 1989 — photo by Jeff Widener (AP).
+Transforms shown; the original photograph is AP-copyrighted and used here as
+a demo only. All renders at `--scale 2 --contrast 5`.
+
+| `truecmyk` — four rotated CMYK grids | `pink-palette` — white→pink→darker-pink→black |
+|---|---|
+| ![Tank Man, true CMYK halftone](examples/tankman-truecmyk.png) | ![Tank Man, pink palette halftone](examples/tankman-pink.png) |
+
+| `pink-old` — binary black + `#A2719B` | cyan (`pink-palette --pink '#00AEEF'`) |
+|---|---|
+| ![Tank Man, binary pink halftone](examples/tankman-pinkold.png) | ![Tank Man, cyan halftone](examples/tankman-cyan.png) |
 
 ## Attribution
 
