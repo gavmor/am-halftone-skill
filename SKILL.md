@@ -20,9 +20,11 @@ need to *change* the recipe, not to run it.
 
 ### 1. State the plan (before running anything)
 
-Say: input file, mode, width, dot scale. Defaults: `--width 800`,
-`--scale 2`, mode `truecmyk`. The grid eats detail — wider than 800 buys
-little, and scale 2 doubles dot size. If the user didn't specify, state the
+Say: input file, mode, width, dot scale, contrast. Defaults: `--width 800`,
+`--scale 2`, `--contrast 0`, mode `truecmyk`. The grid eats detail — wider than 800 buys
+little, and scale 2 doubles dot size. `--contrast` (sigmoidal, 4–6 is punchy)
+goes before the channel split and gives the grid more dot-size variation;
+0 keeps the blog-faithful flat look. If the user didn't specify, state the
 defaults and proceed; ask only if the choice changes the outcome.
 
 | Mode | Output |
@@ -81,7 +83,7 @@ confirmed. Until all four hold, the task is not done.
 
 ## Tooling
 
-- `bin/halftone.sh` — the recipe (`--in --out --mode [--width] [--scale] [--palette] [--colors] [--pink]`, or `--batch`)
+- `bin/halftone.sh` — the recipe (`--in --out --mode [--width] [--scale] [--contrast] [--palette] [--colors] [--pink]`, or `--batch`)
 - `bin/check.py` — executable gate, exits non-zero on failure
 - `references/method.md` — pipeline anatomy, moiré/screen-angle background, author's batch script
 

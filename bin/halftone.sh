@@ -12,15 +12,18 @@
 #
 # Usage:
 #   halftone.sh --in FILE --out FILE --mode truecmyk|pink-old|pink-palette|light-fix|rgb
-#               [--width 800] [--scale 2] [--palette FILE] [--colors 32]
+#               [--width 800] [--scale 2] [--contrast 0] [--palette FILE] [--colors 32]
 #               [--pink '#A2719B']
 #   halftone.sh --batch DIR   # process every image in DIR: originals -> big/, outputs -> smol/
+#
+# --contrast applies sigmoidal contrast before the channel split (0 = off).
+# Cranking it (4-6) pushes tones apart for more dot-size variation.
 #
 set -euo pipefail
 
 MODE="truecmyk"
 IN=""; OUT=""; BATCH=""
-WIDTH=800; SCALE=2; SCALE_SET=0; PALETTE=""; COLORS=32; PINK="#A2719B"
+WIDTH=800; SCALE=2; SCALE_SET=0; CONTRAST=0; PALETTE=""; COLORS=32; PINK="#A2719B"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,6 +33,7 @@ while [[ $# -gt 0 ]]; do
     --batch)   BATCH="$2"; shift 2;;
     --width)   WIDTH="$2"; shift 2;;
     --scale)   SCALE="$2"; SCALE_SET=1; shift 2;;
+    --contrast) CONTRAST="$2"; shift 2;;
     --scale)   SCALE="$2"; shift 2;;
     --palette) PALETTE="$2"; shift 2;;
     --colors)  COLORS="$2"; shift 2;;
@@ -69,7 +73,11 @@ gen_palette() {
 run_core() {
   local in="$1" out="$2" cs="$3" scale="$4" binary="$5"; shift 5
   local angles=("$@")
-  local cmd=("$IM" "$in" -resize "$WIDTH" -set "option:distort:viewport" '%wx%h+0+0'
+  local cmd=("$IM" "$in" -resize "$WIDTH")
+  # Crank contrast before the split: pushes tones apart so the grid gets
+  # more dot-size variation instead of midtone mush. 0 = off (blog-faithful).
+  if [[ "$CONTRAST" != 0 ]]; then cmd+=(-sigmoidal-contrast "$CONTRAST"x50%); fi
+  cmd+=(-set "option:distort:viewport" '%wx%h+0+0'
     -colorspace "$cs" -separate null:
     \( -size 2x2 xc: \( +clone -negate \) +append \( +clone -negate \) -append \)
     -virtual-pixel tile -filter gaussian)
