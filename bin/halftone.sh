@@ -20,7 +20,7 @@ set -euo pipefail
 
 MODE="truecmyk"
 IN=""; OUT=""; BATCH=""
-WIDTH=800; SCALE=2; PALETTE=""; COLORS=32; PINK="#A2719B"
+WIDTH=800; SCALE=2; SCALE_SET=0; PALETTE=""; COLORS=32; PINK="#A2719B"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -29,6 +29,7 @@ while [[ $# -gt 0 ]]; do
     --out)     OUT="$2"; shift 2;;
     --batch)   BATCH="$2"; shift 2;;
     --width)   WIDTH="$2"; shift 2;;
+    --scale)   SCALE="$2"; SCALE_SET=1; shift 2;;
     --scale)   SCALE="$2"; shift 2;;
     --palette) PALETTE="$2"; shift 2;;
     --colors)  COLORS="$2"; shift 2;;
@@ -100,7 +101,9 @@ run_one() {
       local pal="$PALETTE" tmp
       if [[ -z "$pal" ]]; then pal="$(mktemp --suffix=.png)"; gen_palette "$pal"; fi
       tmp="$(mktemp --suffix=.png)"
-      run_core "$in" "$tmp" CMYK 1 0 0 15 45 75
+      # Blog's new method uses scale 1; --scale overrides when explicitly given.
+      local s=1; [[ "$SCALE_SET" == 1 ]] && s="$SCALE"
+      run_core "$in" "$tmp" CMYK "$s" 0 0 15 45 75
       "$IM" "$tmp" -remap "$pal" -colors "$COLORS" "$out"
       rm -f "$tmp"
       if [[ -z "$PALETTE" ]]; then rm -f "$pal"; fi
