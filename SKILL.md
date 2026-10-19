@@ -1,75 +1,89 @@
+---
+name: am-halftone
+description: Simulate a printed AM halftone dot grid on a digital image (ImageMagick CMYK-channel recipe, after dead.garden). Use when an image needs a print/halftone dot-grid look. Not for real dithering or file-size reduction.
+---
+
 # AM Halftone
 
-Simulate a printed AM (amplitude-modulated) halftone dot grid on a digital image: split into CMYK channels, overlay a rotated 2×2 checkerboard threshold tile on each channel at print screen angles, recombine — so tone is carried by dot *size*, like ink on paper. True-CMYK variant, pink monochrome variants, and an RGB variant.
+## When to use
 
-**Method:** [dead.garden — "How my images are dithered"](https://dead.garden/blog/how-my-images-are-dithered.html)
+Use when the user wants the printed-halftone dot-grid look on an image —
+blog art, zine graphics, offset-print vibe. Do **not** use for actual
+dithering, palette reduction where fidelity matters, or shrinking files:
+the grid swallows detail and fights compression.
 
-## Purpose
+Method: [dead.garden — "How my images are dithered"](https://dead.garden/blog/how-my-images-are-dithered.html).
+Full pipeline anatomy lives in `references/method.md` — read it only if you
+need to *change* the recipe, not to run it.
 
-Give a digital image the look of a print halftone — per-channel dot grids whose dot size (not darkness) carries the tone. This is an aesthetic effect. The method's author stresses it is **not real dithering and not an efficient way to shrink images** (on their 11-year-old laptop it takes ~10 seconds per big image, and the pattern fights compression).
+## Workflow
 
-Use it for: blog/site imagery with a printed vibe, zine graphics, diegetic documents that should feel offset-printed. Do not use it for: actual dithering, palette reduction where fidelity matters (the grid swallows detail, especially at dot scale 2), or anything where file size is the goal.
+### 1. State the plan (before running anything)
 
-## Quick start
+Say: input file, mode, width, dot scale. Defaults: `--width 800`,
+`--scale 2`, mode `truecmyk`. The grid eats detail — wider than 800 buys
+little, and scale 2 doubles dot size. If the user didn't specify, state the
+defaults and proceed; ask only if the choice changes the outcome.
+
+| Mode | Output |
+|---|---|
+| `truecmyk` (default) | Four rotated CMYK grids, binary channels — most print-accurate |
+| `pink-old` | Black + one pink (`#A2719B`), big dots — the blog's original look |
+| `pink-palette` | Remapped to white→black→pink→darker-pink gradient, 32 colors |
+| `light-fix` | No grid; the author's fallback for overwhelmingly light images |
+| `rgb` | Same pipeline in RGB — less print-accurate, more intense |
+
+### 2. Run it
 
 ```bash
-bin/halftone.sh --in photo.jpg --out photo-halftone.png --mode truecmyk
-bin/halftone.sh --in photo.jpg --out photo-pink.png  --mode pink-palette
-bin/halftone.sh --batch ./shoot            # big/ originals, smol/ outputs
-bin/check.py                               # executable gate
+bin/halftone.sh --in <file> --out <file> --mode <mode> [--width 800] [--scale 2]
+bin/halftone.sh --batch <dir>   # originals -> big/, outputs -> smol/
 ```
 
-## The pipeline
+Auto-detects `magick` (IM7) / `convert` (IM6), falling back to the
+persistent conda-forge install at `~/workspace/imagemagick`.
 
-The core ImageMagick recipe (author's command, parameterized in `bin/halftone.sh`):
+### 3. Verify with evidence (non-negotiable)
 
-```
-convert in -resize 800 -set option:distort:viewport '%wx%h+0+0' \
-  -colorspace CMYK -separate null: \
-  \( -size 2x2 xc: \( +clone -negate \) +append \( +clone -negate \) -append \) \
-  -virtual-pixel tile -filter gaussian \
-  \( +clone -distort SRT <scale>,0  \) +swap \
-  \( +clone -distort SRT <scale>,15 \) +swap \
-  \( +clone -distort SRT <scale>,45 \) +swap \
-  \( +clone -distort SRT <scale>,75 \) +swap +delete \
-  -compose Overlay -layers composite -colors 2 -set colorspace CMYK -combine \
-  out
+A zero exit code from `halftone.sh` is not evidence the grid formed. Run the
+gate and check your actual output:
+
+```bash
+bin/check.py
+magick <out> -format "%k unique colors, %wx%h\n" info:
 ```
 
-- `-resize 800`: the grid eats detail; wider buys little. Default 800px.
-- The viewport pin keeps the canvas fixed through the per-channel rotations.
-- `-separate` splits CMYK into four channel images; the parenthesized block builds a checkerboard threshold tile; each channel gets a copy of the tile, scaled (`<scale>`: 2 = big dots, 1 = fine) and rotated.
-- Angles 0/15/45/75 are the print-screen convention — DIN 16547 exists precisely because naively stacked AM grids produce moiré. The author admits their ordering is approximate ("good enough").
-- `-compose Overlay -layers composite` lays each rotated grid over its channel — the tone→dot-grid step.
-- `-colors 2` per channel is the author's "true CMYK" fix: binary channels, so dots vary in **size** rather than darkness.
+`check.py` renders every grid mode on a generated test image and asserts the
+color budgets the method promises: truecmyk ≤ 16, pink-old exactly 2,
+pink-palette ≤ 32. Your output must sit inside its mode's budget at the
+requested width.
 
-Full anatomy, angle background, and the author's batch script: `references/method.md`.
+### 4. Look at the picture
 
-## Modes
+Open the output at 100%+ zoom and confirm tone is carried by dot **size**,
+not just darkness — that is the entire point of the method. A thumbnail
+cannot tell you this.
 
-| Mode | What it does | When |
-|---|---|---|
-| `truecmyk` (default) | Above: four rotated CMYK grids, binary channels | The most print-accurate result |
-| `pink-old` | Scale 2, no per-channel `-colors 2`, then `-colorspace Gray -colors 2 +level-colors black,#A2719B` | The old blog look: black + one pink, big dots. Most "printy" but swallows detail; the author abandoned it |
-| `pink-palette` | Scale 1, then `-remap palette.png -colors 32` | More depth via a white→black→pink→darker-pink palette gradient |
-| `light-fix` | Skips the grid entirely: `-modulate 300,200,100 -negate -remap palette.png` | Overwhelmingly light images, where the grid misfires |
-| `rgb` | Same pipeline in RGB (3 channels, angles 0/15/45) | Less print-accurate, darker and more intense, keeps more detail in places |
+**Exit criterion:** output exists at the requested path, at the requested
+width, inside the mode's color budget, and the dot grid is visually
+confirmed. Until all four hold, the task is not done.
 
-Options: `--width` (default 800), `--scale` (default 2), `--palette` (default: auto-generated from the blog's documented stops), `--colors` (default 32), `--pink` (default `#A2719B`). Auto-detects `magick` (IM7) vs `convert` (IM6).
+## Anti-rationalization table
 
-## Operating rules
-
-1. Frame it honestly: an AM halftone simulation, not dithering. Say so when asked what it does.
-2. Expect ~10s per large image on modest hardware; batch with `--batch`.
-3. Never promise smaller files — overlaying four grids creates new colors and fights compression. (The author's own batch ends with `-colors 64` to claw some back.)
-4. Test images for development must be self-made (e.g. IM-generated gradients) — the blog author explicitly asks that their photos not be fed to LLMs. `bin/check.py` builds its own test image.
-5. Keep originals: `--batch` copies inputs to `big/` and writes outputs to `smol/`, mirroring the author's script.
+| Excuse | Rebuttal |
+|---|---|
+| "The command exited 0, that's enough." | Exit codes don't prove the grid formed. Color count plus a visual check, or it didn't happen. |
+| "Looks right in the thumbnail." | Thumbnails can't show dot-size modulation. Zoom to 100%+. |
+| "I'll tune the flags to shrink the file." | Not a file-size tool — the author measured this and it loses. Don't optimize what the method can't do. |
+| "I'll test with the blog's dinner photo." | The author explicitly asks that their photos not be fed to LLMs. Generate test images with ImageMagick. |
+| "The angles don't match DIN 16547; let me fix them." | The author's order is proven visually ("good enough"). Don't refactor what isn't broken. |
+| "Pink needs my brand color; I'll eyeball the hex." | Derive it: darker pink is the pink at 60% brightness, not a guess. The default palette builds from documented stops. |
 
 ## Tooling
 
-- `bin/halftone.sh` — the recipe as a script: `--in --out --mode truecmyk|pink-old|pink-palette|light-fix|rgb [--width 800] [--scale 2] [--palette f] [--colors 32] [--pink '#A2719B'] [--batch dir]`.
-- `bin/check.py` — executable gate: ImageMagick present → build a self-made gradient test image → run `truecmyk`, `pink-old`, and `pink-palette` → assert valid outputs with the expected color counts (≤16, exactly 2, ≤32). Exits non-zero on failure.
-- `references/method.md` — full annotated walkthrough, moiré/screen-angle background, and the author's original batch script.
+- `bin/halftone.sh` — the recipe (`--in --out --mode [--width] [--scale] [--palette] [--colors] [--pink]`, or `--batch`)
+- `bin/check.py` — executable gate, exits non-zero on failure
+- `references/method.md` — pipeline anatomy, moiré/screen-angle background, author's batch script
 
 ## Available connectors
 
