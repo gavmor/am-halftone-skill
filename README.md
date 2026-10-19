@@ -27,9 +27,11 @@ Needs ImageMagick 6 (`convert`) or 7 (`magick`).
 
 ## Examples
 
-"Tank Man", Tiananmen Square, Beijing, 5 June 1989 — photo by Jeff Widener (AP).
-Transforms shown; the original photograph is AP-copyrighted and used here as
-a demo only. All renders at `--scale 2 --contrast 5`.
+"Tank Man", Tiananmen Square, Beijing, 5 June 1989 — photo by Stuart Franklin
+(Magnum Photos). Transforms shown; the original photograph is copyrighted and
+used here as a demo only. Renders at `--scale 2` (`--contrast 5`, except
+`truecmyk` at `--contrast 2` — this is a lighter exposure and 5 blows the
+highlights).
 
 | `truecmyk` — four rotated CMYK grids | `pink-palette` — white→pink→darker-pink→black |
 |---|---|
