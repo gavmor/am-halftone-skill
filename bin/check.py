@@ -72,6 +72,7 @@ def main():
         ("truecmyk", 16, lambda n: n <= 16, f"<=16 colors"),
         ("pink-old", 2, lambda n: n == 2, "exactly 2 colors"),
         ("pink-palette", 32, lambda n: n <= 32, "<=32 colors"),
+        ("rgb", 8, lambda n: n <= 8, "<=8 colors"),
     ]
     for mode, _bound, ok, desc in cases:
         out = os.path.join(tmp, f"out-{mode}.png")
